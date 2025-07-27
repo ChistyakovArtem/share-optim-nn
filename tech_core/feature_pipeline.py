@@ -2,11 +2,11 @@ import pandas as pd
 import numpy as np
 import polars as pl
 from tech_core.reader import FastCSVChunkReader
-import numpy as np
-import pandas as pd
+from tech_core.split_manager import SplitManager
 
 class FeaturesPipeline:
-    def __init__(self, path_to_data: str, padding: int = 20, chunk_size: int = 1000):
+    def __init__(self, path_to_data: str, padding: int = 20, chunk_size: int = 1000,
+                 split_dates=None, split_names=None):
         self.path_to_min_prices = path_to_data + 'minute_prices.csv'
         self.path_to_companies_info = path_to_data + 'companies_info.csv'
 
@@ -15,19 +15,50 @@ class FeaturesPipeline:
         self.padding = padding
         self.chunk_size = chunk_size
 
+        self.split_manager = None
+        self.splits = None
+        if split_dates and split_names:
+            self.split_manager = SplitManager(split_dates, split_names)
+            self._build_splits()
+
+    def _build_splits(self):
+        # Считываем все индексы по времени
+        all_times = []
+        self.reader.reset()
+        while True:
+            try:
+                chunk = next(self.reader)
+                all_times.extend(chunk.index)
+            except StopIteration:
+                break
+
+        self.all_times = all_times
+        self.splits = {
+            name: self.split_manager.get_split_bounds(all_times, name)
+            for name in self.split_manager.split_names
+        }
+
+    def iterate(self, split_name):
+        if self.splits is None or split_name not in self.splits:
+            raise ValueError(f"Unknown split {split_name}")
+        start, end = self.splits[split_name]
+        self.reader.set_split(start, end)
+        self.reader.reset()
+        return self
+
     def __iter__(self):
         return self
 
     def __next__(self):
-        min_prices = next(self.reader)  # это уже DataFrame
-        self.min_prices = min_prices  # чтобы использовать в методах ниже
+        min_prices = next(self.reader)
+        self.min_prices = min_prices
 
         common_feats = self.get_common_market_features()
         asset_feats = self.get_asset_specific_features()
 
-        # отсекаем padding
+        # отсекаем паддинг
         common_feats = common_feats.iloc[-self.chunk_size:]
-        asset_feats = asset_feats[-self.chunk_size:, :, :]  # (total, m, f) -> (chunk_size, m, f)
+        asset_feats = asset_feats[-self.chunk_size:, :, :]
         self.future_returns = self.future_returns.iloc[-self.chunk_size:]
 
         return common_feats, asset_feats, self.future_returns
@@ -38,11 +69,7 @@ class FeaturesPipeline:
     def get_common_market_features(self):
         market_caps = self.min_prices.values * self.info['Shares'].values
         market_shares = market_caps / market_caps.sum(axis=1, keepdims=True)
-        market_shares = pd.DataFrame(
-            market_shares,
-            index=self.min_prices.index,
-            columns=self.min_prices.columns
-        )
+        market_shares = pd.DataFrame(market_shares, index=self.min_prices.index, columns=self.min_prices.columns)
 
         returns = self.min_prices.pct_change().fillna(0)
         returns[self.min_prices.index.to_series().dt.date.shift(1) != self.min_prices.index.to_series().dt.date] = 0
@@ -79,11 +106,7 @@ class FeaturesPipeline:
         ) / (
             market_shares.values @ bool_masks.values
         )
-        return pd.DataFrame(
-            weighted_returns,
-            index=self.min_prices.index,
-            columns=bool_masks.columns
-        )
+        return pd.DataFrame(weighted_returns, index=self.min_prices.index, columns=bool_masks.columns)
 
     def get_asset_specific_features(self):
         features_list = []

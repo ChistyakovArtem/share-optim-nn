@@ -27,12 +27,16 @@ class FastCSVChunkReader:
     def __iter__(self):
         return self
 
+    def set_split(self, start_row: int, end_row: int):
+        self.current_idx = start_row
+        self.end_idx = end_row
+
     def __next__(self):
-        if self.current_idx >= self.total_rows:
+        if self.current_idx >= self.end_idx:
             raise StopIteration
 
         start = self.current_idx
-        end = min(self.current_idx + self.chunk_size + self.padding, self.total_rows - 1)
+        end = min(self.current_idx + self.chunk_size + self.padding, self.end_idx)
 
         with open(self.path, 'rb') as f:
             f.seek(self.offsets[start])
