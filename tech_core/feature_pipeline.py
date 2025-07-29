@@ -28,7 +28,7 @@ class FeaturesPipeline:
         while True:
             try:
                 chunk = next(self.reader)
-                all_times.extend(chunk.index)
+                all_times.extend(chunk.tail(len(chunk) - self.padding).index.tolist())
             except StopIteration:
                 break
 
@@ -42,8 +42,9 @@ class FeaturesPipeline:
         if self.splits is None or split_name not in self.splits:
             raise ValueError(f"Unknown split {split_name}")
         start, end = self.splits[split_name]
-        self.reader.set_split(start, end)
         self.reader.reset()
+        
+        self.reader.set_split(start, end)
         return self
 
     def __iter__(self):
@@ -61,7 +62,7 @@ class FeaturesPipeline:
         asset_feats = asset_feats[-self.chunk_size:, :, :]
         self.future_returns = self.future_returns.iloc[-self.chunk_size:]
 
-        return common_feats, asset_feats, self.future_returns
+        return common_feats, asset_feats, self.future_returns, se
 
     def reset(self):
         self.reader.reset()
@@ -74,8 +75,11 @@ class FeaturesPipeline:
         returns = self.min_prices.pct_change().fillna(0)
         returns[self.min_prices.index.to_series().dt.date.shift(1) != self.min_prices.index.to_series().dt.date] = 0
 
+        # info for loss
         self.future_returns = self.min_prices.shift(-1).pct_change().fillna(0)
         self.future_returns[self.min_prices.index.to_series().shift(-1).dt.date != self.min_prices.index.to_series().dt.date] = 0
+        self.minute_prices = self.min_prices
+        self.market_caps = market_caps
 
         bool_masks = {
             'Ind:Semiconductors': self.info['Industry'] == 'Semiconductors',

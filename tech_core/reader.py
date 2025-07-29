@@ -11,6 +11,7 @@ class FastCSVChunkReader:
         self.has_header = has_header
         self._build_offsets()
         self.current_idx = 0
+        self.end_idx = len(self.offsets) - 1
 
     def _build_offsets(self):
         with open(self.path, 'rb') as f:
@@ -32,6 +33,7 @@ class FastCSVChunkReader:
         self.end_idx = end_row
 
     def __next__(self):
+
         if self.current_idx >= self.end_idx:
             raise StopIteration
 
