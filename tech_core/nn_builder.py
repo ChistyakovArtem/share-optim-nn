@@ -17,6 +17,30 @@ class SimplePortfolioAllocator(nn.Module):
         weights = torch.softmax(weights, dim=-1)
         return weights
     
+class DeepPortfolioAllocator_1(nn.Module):
+    def __init__(self, cmf_dim=50, num_assets=500):
+        super().__init__()
+        self.num_assets = num_assets
+        self.l_1 = nn.Sequential(
+            nn.Linear(cmf_dim, 32),
+            nn.ELU(),
+            # nn.Linear(32, 16),
+            # nn.ELU(),
+            # nn.Linear(16, 8),
+            # nn.ELU(),
+            nn.Linear(32, num_assets + 1)  # +1 для кеша
+        )
+
+    def forward(self, cmf, asset_features):
+        """
+        cmf: [batch_size, cmf_dim]
+        asset_features: [batch_size, num_assets, asset_dim]
+        """
+
+        weights = self.l_1(cmf)
+        weights = torch.softmax(weights, dim=-1)
+        return weights
+
 class DeepPortfolioAllocator(nn.Module):
     def __init__(self, cmf_dim=50, asset_dim=12, num_assets=500,
                  hidden_cmf=64, hidden_asset=32, head_hidden=32):
