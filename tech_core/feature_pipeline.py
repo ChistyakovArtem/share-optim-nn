@@ -62,7 +62,7 @@ class FeaturesPipeline:
         asset_feats = asset_feats[-self.chunk_size:, :, :]
         self.future_returns = self.future_returns.iloc[-self.chunk_size:]
 
-        return common_feats, asset_feats, self.future_returns, se
+        return common_feats, asset_feats, self.future_returns, self.min_prices[-self.chunk_size:], self.market_caps[-self.chunk_size:]
 
     def reset(self):
         self.reader.reset()
@@ -110,7 +110,16 @@ class FeaturesPipeline:
         ) / (
             market_shares.values @ bool_masks.values
         )
-        return pd.DataFrame(weighted_returns, index=self.min_prices.index, columns=bool_masks.columns)
+
+        weighted_returns_orig = pd.DataFrame(weighted_returns, index=self.min_prices.index, columns=bool_masks.columns)
+        weighted_returns = weighted_returns_orig.copy()
+        for horizon in [5, 10, 30]:
+            weighted_returns_tmp_mean = weighted_returns_orig.rolling(window=horizon).mean().add_suffix(f'_mean_{horizon}')
+            weighted_returns_tmp_std = weighted_returns_orig.rolling(window=horizon).std().add_suffix(f'_std_{horizon}')
+            weighted_returns = pd.concat([weighted_returns, weighted_returns_tmp_mean, weighted_returns_tmp_std], axis=1)
+        
+        return weighted_returns
+
 
     def get_asset_specific_features(self):
         features_list = []

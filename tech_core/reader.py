@@ -11,6 +11,7 @@ class FastCSVChunkReader:
         self.has_header = has_header
         self._build_offsets()
         self.current_idx = 0
+        self.asset_names = []
         self.end_idx = len(self.offsets) - 1
 
     def _build_offsets(self):
@@ -53,6 +54,7 @@ class FastCSVChunkReader:
         self.current_idx += self.chunk_size
         tmp = pd.read_csv(io.StringIO(result)).set_index('Unnamed: 0').rename_axis(None)
         tmp.index = pd.to_datetime(tmp.index)
+        self.asset_names = tmp.columns.tolist()
         return tmp
 
     def reset(self):
