@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 
 class SimplePortfolioAllocator(nn.Module):
-    def __init__(self, cmf_dim=50, asset_dim=12, num_assets=500,
-                 hidden_cmf=64, hidden_asset=32, head_hidden=32):
+    def __init__(self, cmf_dim=50, num_assets=500):
         super().__init__()
         self.num_assets = num_assets
         self.tmp_simple_linear = nn.Linear(cmf_dim, num_assets + 1)

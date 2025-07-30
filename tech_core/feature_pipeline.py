@@ -5,15 +5,15 @@ from tech_core.reader import FastCSVChunkReader
 from tech_core.split_manager import SplitManager
 
 class FeaturesPipeline:
-    def __init__(self, path_to_data: str, padding: int = 20, chunk_size: int = 1000,
+    def __init__(self, path_to_data: str, padding: int = 20, batch_size: int = 1000,
                  split_dates=None, split_names=None):
         self.path_to_min_prices = path_to_data + 'minute_prices.csv'
         self.path_to_companies_info = path_to_data + 'companies_info.csv'
 
         self.info = pd.read_csv(self.path_to_companies_info, index_col=0)
-        self.reader = FastCSVChunkReader(self.path_to_min_prices, padding=padding, chunk_size=chunk_size)
+        self.reader = FastCSVChunkReader(self.path_to_min_prices, padding=padding, batch_size=batch_size)
         self.padding = padding
-        self.chunk_size = chunk_size
+        self.batch_size = batch_size
 
         self.split_manager = None
         self.splits = None
@@ -58,11 +58,11 @@ class FeaturesPipeline:
         asset_feats = self.get_asset_specific_features()
 
         # отсекаем паддинг
-        common_feats = common_feats.iloc[-self.chunk_size:]
-        asset_feats = asset_feats[-self.chunk_size:, :, :]
-        self.future_returns = self.future_returns.iloc[-self.chunk_size:]
+        common_feats = common_feats.iloc[-self.batch_size:]
+        asset_feats = asset_feats[-self.batch_size:, :, :]
+        self.future_returns = self.future_returns.iloc[-self.batch_size:]
 
-        return common_feats, asset_feats, self.future_returns, self.min_prices[-self.chunk_size:], self.market_caps[-self.chunk_size:]
+        return common_feats, asset_feats, self.future_returns, self.min_prices[-self.batch_size:], self.market_caps[-self.batch_size:]
 
     def reset(self):
         self.reader.reset()

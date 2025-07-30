@@ -3,10 +3,10 @@ import io
 import pandas as pd
 
 class FastCSVChunkReader:
-    def __init__(self, path, padding=0, chunk_size=1000, has_header=True):
+    def __init__(self, path, padding=0, batch_size=1000, has_header=True):
         self.path = path
         self.padding = padding
-        self.chunk_size = chunk_size
+        self.batch_size = batch_size
         self.offsets = []
         self.has_header = has_header
         self._build_offsets()
@@ -39,7 +39,7 @@ class FastCSVChunkReader:
             raise StopIteration
 
         start = self.current_idx
-        end = min(self.current_idx + self.chunk_size + self.padding, self.end_idx)
+        end = min(self.current_idx + self.batch_size + self.padding, self.end_idx)
 
         with open(self.path, 'rb') as f:
             f.seek(self.offsets[start])
@@ -51,7 +51,7 @@ class FastCSVChunkReader:
             else:
                 result = lines
 
-        self.current_idx += self.chunk_size
+        self.current_idx += self.batch_size
         tmp = pd.read_csv(io.StringIO(result)).set_index('Unnamed: 0').rename_axis(None)
         tmp.index = pd.to_datetime(tmp.index)
         self.asset_names = tmp.columns.tolist()
