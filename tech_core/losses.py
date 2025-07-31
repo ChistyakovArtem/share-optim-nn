@@ -100,7 +100,7 @@ class StreamingSharpeLoss(torch.nn.Module):
         plt.ylabel("Return")
         plt.legend()
         plt.show()
-        return sharpe.item()
+        return sharpe.item(), weights_sum
 
 class MSEPortfolioLoss(torch.nn.Module):
     def __init__(self, fee: float = 0.001):
