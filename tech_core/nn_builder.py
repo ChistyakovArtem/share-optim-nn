@@ -16,19 +16,27 @@ class SimplePortfolioAllocator(nn.Module):
         weights = self.tmp_simple_linear(cmf)
         weights = torch.softmax(weights, dim=-1)
         return weights
-    
+import torch
+import torch.nn as nn
+
 class DeepPortfolioAllocator_1(nn.Module):
-    def __init__(self, cmf_dim=50, num_assets=500):
+    def __init__(self, cmf_dim=50, num_assets=500, asset_dim=8):
         super().__init__()
         self.num_assets = num_assets
-        self.l_1 = nn.Sequential(
-            nn.Linear(cmf_dim, 32),
-            nn.ELU(),
-            # nn.Linear(32, 16),
+        self.asset_dim = asset_dim
+
+        self.cmf_net = nn.Sequential(
+            nn.Linear(cmf_dim, num_assets + 1),  # +1 для кеша
             # nn.ELU(),
-            # nn.Linear(16, 8),
+            # nn.Linear(32, num_assets + 1),  # +1 для кеша
+            nn.ELU()
+        )
+
+        # Эта сетка будет применяться к каждому активу одинаково
+        self.shared_asset_net = nn.Sequential(
+            nn.Linear(asset_dim + 1, 1),
             # nn.ELU(),
-            nn.Linear(32, num_assets + 1)  # +1 для кеша
+            # nn.Linear(4, 1)
         )
 
     def forward(self, cmf, asset_features):
@@ -36,9 +44,29 @@ class DeepPortfolioAllocator_1(nn.Module):
         cmf: [batch_size, cmf_dim]
         asset_features: [batch_size, num_assets, asset_dim]
         """
+        batch_size = cmf.shape[0]
 
-        weights = self.l_1(cmf)
-        weights = torch.softmax(weights, dim=-1)
+        cmf_out = self.cmf_net(cmf)  # [batch_size, num_assets + 1]
+
+        # Разделяем на asset part и кеш
+        asset_bias = cmf_out[:, :-1]  # [batch_size, num_assets]
+        cash_bias = cmf_out[:, -1:]   # [batch_size, 1]
+
+        # Расширим asset_bias по последней размерности для concat
+        asset_bias = asset_bias.unsqueeze(-1)  # [batch_size, num_assets, 1]
+
+        # Конкатенируем asset_features с asset_bias
+        concat = torch.cat([asset_features, asset_bias], dim=-1)  # [batch_size, num_assets, asset_dim + 1]
+
+        # Применяем shared сеть ко всем активам
+        asset_scores = self.shared_asset_net(concat).squeeze(-1)  # [batch_size, num_assets]
+
+        # Склеим обратно с кешем
+        all_scores = torch.cat([asset_scores, cash_bias], dim=-1)  # [batch_size, num_assets + 1]
+
+        # Применяем softmax
+        weights = torch.softmax(all_scores, dim=-1)
+
         return weights
 
 class DeepPortfolioAllocator(nn.Module):
