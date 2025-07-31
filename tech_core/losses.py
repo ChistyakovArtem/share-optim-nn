@@ -58,7 +58,8 @@ class StreamingSharpeLoss(torch.nn.Module):
             trans_cost = torch.zeros_like(port_ret)
         else:
             w_all = torch.cat([self.w_prev.unsqueeze(0), weights], dim=0)
-            trans_cost = torch.abs(w_all[1:, :-1] - w_all[:-1, :-1]) * (self.fees_per_share + self.get_spread_estimation(min_prices, market_caps / 1e9)) / min_prices
+            #trans_cost = torch.abs(w_all[1:, :-1] - w_all[:-1, :-1]) * (self.fees_per_share + self.get_spread_estimation(min_prices, market_caps / 1e9)) / min_prices
+            trans_cost = torch.abs(w_all[1:, :-1] - w_all[:-1, :-1]) * self.fee
             trans_cost = trans_cost.sum(dim=1)
 
         if self.weights_sum is None:
