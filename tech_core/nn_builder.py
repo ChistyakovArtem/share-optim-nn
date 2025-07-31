@@ -26,17 +26,17 @@ class DeepPortfolioAllocator_1(nn.Module):
         self.asset_dim = asset_dim
 
         self.cmf_net = nn.Sequential(
-            nn.Linear(cmf_dim, num_assets + 1),  # +1 для кеша
-            # nn.ELU(),
-            # nn.Linear(32, num_assets + 1),  # +1 для кеша
+            nn.Linear(cmf_dim, 32),  # +1 для кеша
+            nn.ELU(),
+            nn.Linear(32, num_assets + 1),  # +1 для кеша
             nn.ELU()
         )
 
         # Эта сетка будет применяться к каждому активу одинаково
         self.shared_asset_net = nn.Sequential(
-            nn.Linear(asset_dim + 1, 1),
-            # nn.ELU(),
-            # nn.Linear(4, 1)
+            nn.Linear(asset_dim + 1, 4),
+            nn.ELU(),
+            nn.Linear(4, 1)
         )
 
     def forward(self, cmf, asset_features):
