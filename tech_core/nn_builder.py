@@ -17,33 +17,33 @@ class SimplePortfolioAllocator(nn.Module):
         weights = torch.softmax(weights, dim=-1)
         return weights
 
-class LSTMPortfolioAllocator(nn.Module):
-    def __init__(self, cmf_dim=50, num_assets=500, hidden_dim=32, num_layers=1):
-        super().__init__()
-        self.num_assets = num_assets
+# class LSTMPortfolioAllocator(nn.Module):
+#     def __init__(self, cmf_dim=50, num_assets=500, hidden_dim=32, num_layers=1):
+#         super().__init__()
+#         self.num_assets = num_assets
 
-        # LSTM по глобальным факторам
-        self.lstm = nn.LSTM(
-            input_size=cmf_dim,
-            hidden_size=hidden_dim,
-            num_layers=num_layers,
-            batch_first=True
-        )
+#         # LSTM по глобальным факторам
+#         self.lstm = nn.LSTM(
+#             input_size=cmf_dim,
+#             hidden_size=hidden_dim,
+#             num_layers=num_layers,
+#             batch_first=True
+#         )
 
-        # Последний hidden state -> линейный слой
-        self.output_layer = nn.Linear(hidden_dim, num_assets + 1)
+#         # Последний hidden state -> линейный слой
+#         self.output_layer = nn.Linear(hidden_dim, num_assets + 1)
 
-    def forward(self, cmf, asset_features=None):
-        """
-        cmf: [batch_size, seq_len, cmf_dim]
-        asset_features: [batch_size, num_assets, asset_dim] (можно игнорировать)
-        """
-        _, (h_n, _) = self.lstm(cmf)  # h_n: [num_layers, batch_size, hidden_dim]
-        h_last = h_n[-1]  # [batch_size, hidden_dim]
+#     def forward(self, cmf, asset_features=None):
+#         """
+#         cmf: [batch_size, seq_len, cmf_dim]
+#         asset_features: [batch_size, num_assets, asset_dim] (можно игнорировать)
+#         """
+#         _, (h_n, _) = self.lstm(cmf)  # h_n: [num_layers, batch_size, hidden_dim]
+#         h_last = h_n[-1]  # [batch_size, hidden_dim]
 
-        weights = self.output_layer(h_last)  # [batch_size, num_assets + 1]
-        weights = torch.softmax(weights, dim=-1)
-        return weights
+#         weights = self.output_layer(h_last)  # [batch_size, num_assets + 1]
+#         weights = torch.softmax(weights, dim=-1)
+#         return weights
 
 class DeepPortfolioAllocator_1(nn.Module):
     def __init__(self, cmf_dim=50, num_assets=500, asset_dim=8):

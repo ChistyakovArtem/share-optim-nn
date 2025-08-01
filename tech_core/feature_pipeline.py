@@ -20,7 +20,7 @@ class FeaturesPipeline:
         if split_dates and split_names:
             self.split_manager = SplitManager(split_dates, split_names)
             self._build_splits()
-
+        
     def _build_splits(self):
         # Считываем все индексы по времени
         all_times = []
@@ -79,7 +79,7 @@ class FeaturesPipeline:
         self.future_returns = self.min_prices.shift(-1).pct_change().fillna(0)
         self.future_returns[self.min_prices.index.to_series().shift(-1).dt.date != self.min_prices.index.to_series().dt.date] = 0
         self.minute_prices = self.min_prices
-        self.market_caps = market_caps
+        self.market_caps = pd.DataFrame(market_caps, index=self.min_prices.index, columns=self.min_prices.columns)
 
         bool_masks = {
             'Ind:Semiconductors': self.info['Industry'] == 'Semiconductors',
@@ -117,14 +117,29 @@ class FeaturesPipeline:
             weighted_returns_tmp_mean = weighted_returns_orig.rolling(window=horizon).mean().add_suffix(f'_mean_{horizon}')
             weighted_returns_tmp_std = weighted_returns_orig.rolling(window=horizon).std().add_suffix(f'_std_{horizon}')
             weighted_returns = pd.concat([weighted_returns, weighted_returns_tmp_mean, weighted_returns_tmp_std], axis=1)
-        
+
         return weighted_returns
 
 
     def get_asset_specific_features(self):
         features_list = []
+        picked_assets = [
+            'MPWR',
+            'FICO',
+            'MTD',
+            'NVR',
+            'BKNG',
+            'ESS',
+            'ZBRA',
+            'POOL',
+            'AIZ',
+            'TDY',
+            'AMP',
+            'FDS',
+            'WAT'
+        ]
 
-        pct_change = self.min_prices.pct_change().fillna(0)
+        pct_change = self.min_prices[picked_assets].pct_change().fillna(0)
         pct_change[self.min_prices.index.to_series().shift(1) != self.min_prices.index.to_series()] = 0
 
         features_list.append(pct_change)
