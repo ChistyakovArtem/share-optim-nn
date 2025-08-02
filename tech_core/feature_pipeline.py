@@ -123,11 +123,8 @@ class FeaturesPipeline:
 
     def get_asset_specific_features(self):
         features_list = []
-        picked_assets_path = '/home/artem/PetProjects/data/picked_assets.txt'
-        with open(picked_assets_path, 'r') as f:
-            picked_assets = [line.strip() for line in f.readlines()]
 
-        pct_change = self.min_prices[picked_assets].pct_change().fillna(0)
+        pct_change = self.min_prices.pct_change().fillna(0)
         pct_change[self.min_prices.index.to_series().shift(1) != self.min_prices.index.to_series()] = 0
 
         features_list.append(pct_change)

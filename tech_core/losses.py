@@ -43,14 +43,19 @@ class StreamingSharpeLoss(torch.nn.Module):
         # Ограничим сверху до 0.1 (плохие неликвидные активы)
         return spread.clamp(max=0.1)
 
-    def forward(self, weights: torch.Tensor, returns: torch.Tensor, min_prices: torch.Tensor = None, market_caps: torch.Tensor = None):
+    def forward(self, weights: torch.Tensor, returns: torch.Tensor, prev_model_cash: torch.Tensor, min_prices: torch.Tensor = None, market_caps: torch.Tensor = None):
         """
         weights: (T, N)
         returns: (T, N)
+        prev_model_cash: (T,) - количества кеша который остался от предыдущей модели
+        min_prices: (T, N) - цены в $
+        market_caps: (T, N) - капитализации в миллиардах $
+        Возвращает: значение функции потерь
         """
         T, N = weights.shape
 
         returns_with_cash = torch.cat([returns, torch.zeros_like(returns[:, :1])], dim=1)  # (T, N+1)
+        weights = weights * prev_model_cash
 
         port_ret = (weights * returns_with_cash).sum(dim=1)  # (T,)
 
