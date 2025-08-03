@@ -84,7 +84,8 @@ class StreamingSharpeLoss(torch.nn.Module):
     def compute_loss(self, r_net: torch.Tensor):
         mean = r_net.mean()
         std = r_net.std(unbiased=False) + self.eps
-        sharpe = mean / std * np.sqrt(self.intervals_per_year)
+        mean_squared = mean ** 2
+        sharpe = mean_squared / std * np.sqrt(self.intervals_per_year)
         return -sharpe
 
     def plot_whole_epoch_loss(self):
