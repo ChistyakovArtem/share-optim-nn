@@ -4,7 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 
 class StreamingSharpeLoss(torch.nn.Module):
-    def __init__(self, asset_names, fee: float = 0.001, fees_per_share: float = 0.003, eps: float = 1e-6, intervals_per_year: int = 252*6.5*60):
+    def __init__(self, asset_names, fee: float = 0.001, fees_per_share: float = 0.003, eps: float = 1e-6, intervals_per_year: int = 252*6.5*60, is_sharpe: bool = True):
         super().__init__()
         self.asset_names = asset_names
         self.fee = fee
@@ -12,6 +12,7 @@ class StreamingSharpeLoss(torch.nn.Module):
         self.eps = eps
         self.intervals_per_year = intervals_per_year
         self.weights_sum = None
+        self.is_sharpe = is_sharpe
         self.reset()
 
     def reset(self):
@@ -84,7 +85,11 @@ class StreamingSharpeLoss(torch.nn.Module):
     def compute_loss(self, r_net: torch.Tensor):
         mean = r_net.mean()
         std = r_net.std(unbiased=False) + self.eps
-        sharpe = mean / std * np.sqrt(self.intervals_per_year)
+        if self.is_sharpe:
+            scaler = 1
+        else:
+            scaler = mean.abs().mean() * 10000
+        sharpe = mean * scaler / std * np.sqrt(self.intervals_per_year)
         return -sharpe
 
     def plot_whole_epoch_loss(self):
