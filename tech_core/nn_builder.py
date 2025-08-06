@@ -1,21 +1,77 @@
 import torch
 import torch.nn as nn
 
+# class SimplePortfolioAllocator(nn.Module):
+#     def __init__(self, cmf_dim=50, num_assets=500):
+#         super().__init__()
+#         self.num_assets = num_assets
+#         self.tmp_simple_linear = nn.Linear(cmf_dim, num_assets + 1)
+
+#     def forward(self, cmf, asset_features):
+#         """
+#         cmf: [batch_size, cmf_dim]
+#         asset_features: [batch_size, num_assets, asset_dim]
+#         """
+
+#         weights = self.tmp_simple_linear(cmf)
+#         weights = torch.softmax(weights, dim=-1)
+#         return weights
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
 class SimplePortfolioAllocator(nn.Module):
-    def __init__(self, cmf_dim=50, num_assets=500):
+    def __init__(self, cmf_dim=50, num_assets=500, is_snp_initialization=False, market_caps=None):
+        """
+        cmf_dim: размерность общих фичей
+        num_assets: число активов
+        is_snp_initialization: если True, то веса инициализируются под маркет капы
+        market_caps: тензор или массив размера [num_assets], задающий долю капитализации для каждого актива
+        """
         super().__init__()
         self.num_assets = num_assets
-        self.tmp_simple_linear = nn.Linear(cmf_dim, num_assets + 1)
+        self.tmp_simple_linear = nn.Linear(cmf_dim, num_assets + 1)  # +1 для кеша или risk-free
+
+        if is_snp_initialization:
+            assert market_caps is not None, "Нужно передать market_caps при is_snp_initialization=True"
+            self._init_weights_to_match_market_caps(market_caps)
+
+    def _init_weights_to_match_market_caps(self, market_caps):
+        """Инициализация весов слоя linear так, чтобы softmax(linear(cmf)) ≈ market_weights"""
+        with torch.no_grad():
+            market_caps = torch.tensor(market_caps, dtype=torch.float32)
+            market_weights = market_caps / market_caps.sum()
+
+            # Учитываем дополнительную +1 компоненту (например, кеш)
+            if len(market_weights) != self.num_assets:
+                raise ValueError("market_caps должен быть размером [num_assets]")
+
+            # Добавим ноль или маленькое значение для кеша
+            extra_weight = torch.tensor([1e-3], dtype=torch.float32)
+            full_weights = torch.cat([market_weights, extra_weight])
+            full_weights = full_weights / full_weights.sum()
+
+            # Вычислим "обратный softmax" через логарифм, т.е. хотим:
+            # softmax(w) ≈ full_weights => w ≈ log(full_weights)
+            # Центрируем для устойчивости
+            logits = full_weights.log()
+            logits = logits - logits.mean()
+
+            # Установим bias = logits, а weights в ноль, чтобы output = bias всегда
+            nn.init.zeros_(self.tmp_simple_linear.weight)
+            self.tmp_simple_linear.bias.copy_(logits)
 
     def forward(self, cmf, asset_features):
         """
         cmf: [batch_size, cmf_dim]
-        asset_features: [batch_size, num_assets, asset_dim]
+        asset_features: [batch_size, num_assets, asset_dim] (не используется)
         """
-
-        weights = self.tmp_simple_linear(cmf)
-        weights = torch.softmax(weights, dim=-1)
+        weights = self.tmp_simple_linear(cmf)  # [batch_size, num_assets + 1]
+        weights = F.softmax(weights, dim=-1)
         return weights
+
 
 # class LSTMPortfolioAllocator(nn.Module):
 #     def __init__(self, cmf_dim=50, num_assets=500, hidden_dim=32, num_layers=1):
