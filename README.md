@@ -4,7 +4,12 @@ This repository contains my implementation of the ideas presented in the article
 
 # Results
 
-<!-- Placeholder: To be filled with bullet-point summary of results -->
+- **Reproduced and extended** a top-cited scientific method ([200+ citations](https://arxiv.org/abs/1911.09107)) for training neural networks directly on the Sharpe Ratio, adapting it to a multi-asset mid-frequency trading (MFT) strategy over the S&P 500.
+- **Engineered a DL-driven trading strategy** that achieved **+176% total return** with **Sharpe Ratio 11.6** on 2025 out-of-sample data, demonstrating strong alpha under realistic fee assumptions.
+- **Resolved optimization collapse** in Sharpe-based training by introducing a **novel multi-stage loss schedule** (*Sharpe → Sharpe-PnL → PnL*), achieving a **3× improvement in PnL** without Sharpe degradation.
+- **Designed and deployed a robust training pipeline** for time-series asset data, including a **200× speed-up** in feature processing via offset-mapped caching and efficient batching for API-constrained environments.
+- **Explored future extensions** of the strategy, including constraint adaptation, stacked modeling, and forecast-aware regularization, laying groundwork for production-level improvements.
+- **Submitted a project proposal for academic publication** to the Head of AI in Mathematical Finance at HSE University, positioning the work for potential research collaboration.
 
 # Original Article
 
