@@ -111,6 +111,45 @@ class DeepPortfolioAllocator_1(nn.Module):
         return weights
 ```
 
+Deep Allocator has big problems with convergence. This is very common among these types of articles to use one layer.  
+I believe this is because Sharpe Ratio with fees is a very bad loss to optimize into (compared to things like MSE or CrossEntropy).
+
+## About the losses
+
+Trying to fit on other losses like **PnL** or **Sharpe-PnL** (about it later) often results in **“Mode Collapsing”**, where the strategy converges to a local optimum (e.g. buy-and-hold of one asset), even though a smarter strategy outperforms it even on train.  
+This problem can be mitigated by fitting on different losses **step-by-step**:  
+**first into Sharpe**, then into **Sharpe-PnL**, then into **just PnL**.
+
+> **Why Sharpe-PnL?**  
+> With a normal Sharpe ratio, the model can put 10× less money into assets than possible and still have the same Sharpe:  
+> `Sharpe(returns) = Sharpe(returns / 10)`.  
+>  
+> **Sharpe-PnL** fixes this by scaling Sharpe:  
+> `Sharpe-PnL(returns) = Sharpe(returns) * |mean(returns)|`.
+
+---
+
+### Code of 3 losses (Sharpe, PnL, and Sharpe-PnL):
+
+```python
+def compute_loss(self, r_net: torch.Tensor, is_train: bool = True):
+    # During training, optimize the loss (e.g., Sharpe or PnL),
+    # but during validation also track true Sharpe ratio and plot PnL for monitoring.
+    mean = r_net.mean()
+    std = r_net.std(unbiased=False) + self.eps
+
+    if self.loss_type == 'sharpe' or not is_train:
+        scaler = 1
+    elif self.loss_type == 'sharpe-pnl':
+        # Scale Sharpe loss to match PnL scale for stable learning rate across loss types
+        scaler = mean.abs().mean() * 10000  # scalers for losses to have similar scale and hence the same learning rates
+    elif self.loss_type == 'pnl':
+        # Scale Sharpe loss to match PnL scale for stable learning rate across loss types
+        scaler = std * 10000
+
+    sharpe = mean * scaler / std * np.sqrt(self.intervals_per_year)
+    return -sharpe
+```
 # Pipelines & Tech Core
 
 In order to fit the neural network on this large amount of data with a non-trivial loss function, I had to perform data loading, time-series feature construction, and loss evaluation on smaller chunks.
