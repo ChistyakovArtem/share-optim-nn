@@ -90,7 +90,7 @@ class FeaturesPipeline:
             'Ind:Aerospace & Defense': self.info['Industry'] == 'Aerospace & Defense',
             'Ind:Financial Exchanges & Data': self.info['Industry'] == 'Financial Exchanges & Data',
             'Ind:Pharmaceuticals': self.info['Industry'] == 'Pharmaceuticals',
-
+            
             'Sec:Energy': self.info['Sector'] == 'Energy',
             'Sec:Industrials': self.info['Sector'] == 'Industrials',
             'Sec:Consumer Discretionary': self.info['Sector'] == 'Consumer Discretionary',
@@ -99,7 +99,7 @@ class FeaturesPipeline:
             'Sec:Information Technology': self.info['Sector'] == 'Information Technology',
             'Sec:Communication Services': self.info['Sector'] == 'Communication Services',
             'Sec:Real Estate': self.info['Sector'] == 'Real Estate',
-
+            
             'Add:All': pd.Series(True, index=self.info.index),
             'Add:Mag7': self.info.index.isin(['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'META']),
         }

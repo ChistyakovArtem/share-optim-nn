@@ -82,10 +82,10 @@ class StreamingSharpeLoss(torch.nn.Module):
 
         return self.compute_loss(r_net)
 
-    def compute_loss(self, r_net: torch.Tensor):
+    def compute_loss(self, r_net: torch.Tensor, is_train: bool = True):
         mean = r_net.mean()
         std = r_net.std(unbiased=False) + self.eps
-        if self.loss_type == 'sharpe':
+        if self.loss_type == 'sharpe' or not is_train:
             scaler = 1
         elif self.loss_type == 'sharpe-pnl':
             scaler = mean.abs().mean() * 10000
@@ -98,7 +98,7 @@ class StreamingSharpeLoss(torch.nn.Module):
         if not self.pnl_log:
             return 0.0
         r_net = torch.cat(self.pnl_log).flatten()
-        sharpe = -self.compute_loss(r_net)
+        sharpe = -self.compute_loss(r_net, is_train=False)
         print(f"Sharpe Ratio for the epoch: {sharpe.item():.4f}")
 
         weights_sum = self.weights_sum / len(self.pnl_log)
