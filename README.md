@@ -1,12 +1,12 @@
-# Deep Learning on Sharpe Ratio for Mid-Frequency Trading on S&P 500 Stocks
+# Sharpe-Based DL for MFT (S&P 500)
 
 This repository contains my implementation of the ideas presented in the article [*Deep Learning for Portfolio Optimization*](https://arxiv.org/pdf/2005.13665), which has over 200 citations, along with my adaptations, use cases, and the results of applying this technique to mid-frequency trading.
 
-## Results
+# Results
 
 <!-- Placeholder: To be filled with bullet-point summary of results -->
 
-## Original Article
+# Original Article
 
 [*Deep Learning for Portfolio Optimization*] by Zihao Zhang, Stefan Zohren, and Stephen Roberts is a compelling article demonstrating the power of neural networks for complex portfolio optimization problems.  
 Traditionally, machine learning has been used to predict price movements, volatility, or autocorrelations. These predictions were then fed into stochastic models or heuristics to generate trading strategies.  
@@ -17,7 +17,7 @@ Their strategy achieved a Sharpe ratio of **1.96**, compared to the market Sharp
 I found the idea very interesting, and since no public code implementation was available, I decided to build it myself. I also explored how this approach would work in a different setting — **mid-frequency trading** (MFT).  
 I was curious to see what kinds of strategies the neural network would converge to, and under what transaction cost regimes. The results exceeded my expectations, and I’m considering turning this into a publication or using it as part of my Bachelor's thesis.
 
-## My Case & Adaptations
+# My Case & Adaptations
 
 I used two years of **minute-level candle data** (from July 10, 2023, to July 3, 2025) for 488 out of the 500 S&P 500 stocks.  
 The stock universe was fixed as of **June 2023** to avoid lookahead bias (e.g., PLTR was excluded), and 12 stocks were missing due to delisting, mergers, or data unavailability.  
@@ -312,6 +312,59 @@ def get_asset_specific_features(self):
 ```
 
 These features are used as the `asset_features` input in architectures like `DeepPortfolioAllocator`, where each asset is processed with its own features and combined with global context.
+
+# PnL on Test Set (2025)
+
+Due to notebook saving issues, the PnL plots are currently messy (e.g., X-axis shows numeric indices instead of dates). I plan to rerun the experiments and replace the current images with cleaner versions in the future.
+
+Train period: **July 2023 – December 2024 (inclusive)**  
+Test period: **All available 2025 (until July)**
+
+---
+
+## 1. "Market Fees" — Simple Allocator
+[Notebook](https://github.com/ChistyakovArtem/share-optim-nn/blob/exps/bs%3D1000/me_fees_lr%3D1e-1/start.ipynb)
+
+![PnL - Simple Allocator](images_for_readme/test_1.png)
+
+---
+
+## 2. "Market Fees" — Deep Allocator  
+[Notebook](https://github.com/ChistyakovArtem/share-optim-nn/tree/exps/af_incl/best_result_so_far)
+
+![PnL - Deep Allocator](images_for_readme/test_2.png)
+
+---
+
+## 3. Default Fees — Sharpe Ratio Loss  
+[Notebook](https://github.com/ChistyakovArtem/share-optim-nn/blob/exps/second_try_2_models/start.ipynb)
+
+![PnL - Sharpe Loss](images_for_readme/test_3.png)  
+![Average Weights](images_for_readme/avg_weights_3.png)
+
+---
+
+## 4. Default Fees — Sharpe-PnL Loss  
+[Notebook](https://github.com/ChistyakovArtem/share-optim-nn/blob/exps/08-07/sharpe-pnl_and_pnl_losses/start.ipynb)
+
+![PnL - Sharpe-PnL Loss](images_for_readme/test_4.png)
+
+---
+
+## 5. Default Fees — PnL Loss  
+[Notebook](https://github.com/ChistyakovArtem/share-optim-nn/blob/exps/08-07/sharpe-pnl_and_pnl_losses/start.ipynb)
+
+![PnL - PnL Loss](images_for_readme/test_5.png)
+
+---
+
+## 6. 3x Default Fees — Portfolio Manager Strategy
+[Notebook](https://github.com/ChistyakovArtem/share-optim-nn/blob/exps/08-06/3x_fees_example/start.ipynb)
+
+![PnL - PM Strategy](images_for_readme/test_6.png)  
+![Average Weights](images_for_readme/avg_weights_6.png)
+
+With fees too big for alpha trading, model downgraded to Portfolio Management.
 
 # Future Ideas to work with
 
